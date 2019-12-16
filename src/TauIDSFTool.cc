@@ -36,7 +36,7 @@ const TF1* extractTF1(const TFile* file, const std::string& funcname){
 
 
 
-TauIDSFTool::TauIDSFTool(const std::string& year, const std::string& id, const std::string& wp, const bool dm): ID(id), WP(wp){
+TauIDSFTool::TauIDSFTool(const std::string& year, const std::string& id, const std::string& wp, const bool dm, const bool embedding, const bool tightVSe): ID(id), WP(wp){
   
   bool verbose = false;
   std::string datapath                = Form("%s/src/TauPOG/TauIDSFs/data",getenv("CMSSW_BASE"));
@@ -58,20 +58,64 @@ TauIDSFTool::TauIDSFTool(const std::string& year, const std::string& id, const s
   
   if(std::find(antiJetIDs.begin(),antiJetIDs.end(),ID)!=antiJetIDs.end()){
     if(dm){
-      TString filename = Form("%s/TauID_SF_dm_%s_%s.root",datapath.data(),ID.data(),year.data());
+      TString filename;
+      if (embedding) {
+          if (ID.find("oldDM") != std::string::npos)
+          {
+             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
+             assert(0);
+          }
+          filename = Form("%s/TauID_SF_dm_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
+          if (tightVSe) {
+              std::cout << "[WARNING] The DM binned SFs are not provided for the tight vs electron WP. Using the SFs for the vloose vs electron WP." << std::endl;
+          }
+      }
+      else {
+          filename = Form("%s/TauID_SF_dm_%s_%s.root",datapath.data(),ID.data(),year.data());
+          if (tightVSe) {
+              std::cout << "[WARNING] The DM binned SFs are not provided for the tight vs electron WP. Using the SFs for the vloose vs electron WP." << std::endl;
+          }
+      }
       TFile* file = ensureTFile(filename,verbose);
       hist = extractTH1(file,WP);
       hist->SetDirectory(0);
       file->Close();
       delete file;
-      DMs    = {0,1,10};
+      // Decay mode 2 will later be mapped to decay mode 1
+      DMs    = {0,1,2,10};
       if (ID.find("oldDM") == std::string::npos)
       {
           DMs.push_back(11);
       }
       isVsDM = true;
     }else{
-      TString filename = Form("%s/TauID_SF_pt_%s_%s.root",datapath.data(),ID.data(),year.data());
+      TString filename;
+      if (embedding) {
+          if (ID.find("oldDM") != std::string::npos)
+          {
+             std::cerr << "Scale factors for embedded samples are not provided for the MVA IDs." << std::endl;
+             assert(0);
+          }
+          filename = Form("%s/TauID_SF_pt_%s_%s_EMB.root",datapath.data(),ID.data(),year.data());
+          if (tightVSe) {
+              filename = Form("%s/TauID_SF_pt_%s_%s_tight_antie_EMB.root",datapath.data(),ID.data(),year.data());
+          }
+      }
+      else {
+          if (tightVSe)
+          {
+              if (ID.find("oldDM") != std::string::npos)
+              {
+                 std::cerr << "Scale factors for the MVA IDs are not provided for the different vs e working points." << std::endl;
+                 assert(0);
+              }
+              filename = Form("%s/TauID_SF_pt_%s_%s_tight_antie.root",datapath.data(),ID.data(),year.data());
+          }
+          else
+          {
+              filename = Form("%s/TauID_SF_pt_%s_%s.root",datapath.data(),ID.data(),year.data());
+          }
+      }
       TFile* file = ensureTFile(filename,verbose);
       func[""]     = extractTF1(file,Form("%s_cent",WP.data()));
       func["Up"]   = extractTF1(file,Form("%s_up",  WP.data()));
@@ -125,6 +169,10 @@ float TauIDSFTool::getSFvsDM(double pt, int dm, int genmatch, const std::string&
   if(!isVsDM) disabled();
   if(std::find(DMs.begin(),DMs.end(),dm)!=DMs.end() or pt<=40){
     if(genmatch==5){
+      // Change DM2 to DM1 to use DM1 SF of DM1.
+      if (dm == 2) {
+          dm = 1;
+      }
       Int_t bin = hist->GetXaxis()->FindBin(dm);
       float SF  = hist->GetBinContent(bin);
       if(unc=="Up")

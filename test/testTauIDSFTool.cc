@@ -104,6 +104,65 @@ void printSFTable(std::string year, std::string id, std::string wp, std::string 
 }
 
 
+void printSFTable_EMB(std::string year, std::string id, std::string wp, std::string vs){
+  bool dm = (vs=="dm");
+  TauIDSFTool* sftool = new TauIDSFTool(year,id,wp,dm, true);
+  std::cout << std::fixed;
+  std::cout.precision(5);
+  if(vs=="pt"){
+      std::vector<int> ptvals = {10,20,21,25,26,30,31,35,40,50,70,100,200,500,600,700,800,1000,1500,2000,};
+      std::cout << ">>>  " << std::endl;
+      std::cout << ">>> SF for "<<wp<<" WP of "<<id<<" in "<<year<< std::endl;
+      std::cout << ">>>  " << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "var \\ pt";
+      for(auto const& pt: ptvals)
+        std::cout << std::setw(9) << pt
+        ;
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "central";
+      for(auto const& pt: ptvals)
+        std::cout << std::setw(9) << sftool->getSFvsPT(pt,5);
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "up";
+      for(auto const& pt: ptvals)
+        std::cout << std::setw(9) << sftool->getSFvsPT(pt,5,"Up");
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "down";
+      for(auto const& pt: ptvals)
+        std::cout << std::setw(9) << sftool->getSFvsPT(pt,5,"Down");
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::endl;
+      //sftool->getSFvsDM(25,1,5);   // results in an error
+      //sftool->getSFvsEta(1.5,1,5); // results in an error
+  }else if(vs=="dm"){
+    std::vector<int> DMs    = {0,1,5,6,10,11};
+    std::vector<int> ptvals = {25,50};
+    for(auto const& pt: ptvals){
+      std::cout << ">>>  " << std::endl;
+      std::cout << ">>> SF for "<<wp<<" WP of "<<id<<" in "<<year<<" with pT = "<<pt<<" GeV" << std::endl;
+      std::cout << ">>>  " << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "var \\ DM";
+      for(auto const& dm_: DMs)
+        std::cout << std::setw(9) << dm_;
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "central";
+      for(auto const& dm_: DMs)
+        std::cout << std::setw(9) << sftool->getSFvsDM(pt,dm_,5);
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "up";
+      for(auto const& dm_: DMs)
+        std::cout << std::setw(9) << sftool->getSFvsDM(pt,dm_,5,"Up");
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::setw(9) << "down";
+      for(auto const& dm_: DMs)
+        std::cout << std::setw(9) << sftool->getSFvsDM(pt,dm_,5,"Down");
+      std::cout << std::endl;
+      std::cout << ">>>  " << std::endl;
+      //sftool->getSFvsPT(pt,5);    // results in an error
+      //sftool->getSFvsEta(1.5,1,5); // results in an error
+    }
+  }
+}
 
 int main(int argc, char* argv[]){
   std::cout << ">>> " << std::endl;
@@ -125,6 +184,8 @@ int main(int argc, char* argv[]){
         for(auto const& wp: WPs){
           if(id=="antiMu3" and wp=="Medium") continue;
           printSFTable(year,id,wp,vs);
+          if(id=="MVAoldDM2017v2") continue;
+          printSFTable_EMB(year,id,wp,vs);
         }
       }
     }
